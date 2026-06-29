@@ -1,0 +1,15 @@
+# python / venv
+.venv/
+__pycache__/
+*.pyc
+
+# MLX LoRA outputs (regenerable from train.sh)
+mlx-sft/adapters/
+mlx-sft/fused_model/
+
+# large / cached artifacts
+*.safetensors
+*.gguf
+.DS_Store
+
+# keep: dataset jsonl + benchmark result json (they're small and part of the demo)
