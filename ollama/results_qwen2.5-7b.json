@@ -1,0 +1,40 @@
+{
+  "model": "qwen2.5:7b",
+  "chip": "Apple M5",
+  "avg_gen_tok_s": 28.9,
+  "avg_prefill_tok_s": 216.1,
+  "runs": [
+    {
+      "prompt": "Explain what a transformer neural network is in two sentences.",
+      "gen_tokens": 69,
+      "gen_tok_s": 28.7,
+      "prompt_tokens": 41,
+      "prefill_tok_s": 154.0,
+      "wall_s": 3.57
+    },
+    {
+      "prompt": "Write a haiku about a fanless laptop running an LLM.",
+      "gen_tokens": 20,
+      "gen_tok_s": 29.8,
+      "prompt_tokens": 43,
+      "prefill_tok_s": 237.2,
+      "wall_s": 0.94
+    },
+    {
+      "prompt": "List three reasons unified memory helps on-device inference.",
+      "gen_tokens": 200,
+      "gen_tok_s": 28.4,
+      "prompt_tokens": 39,
+      "prefill_tok_s": 220.3,
+      "wall_s": 7.3
+    },
+    {
+      "prompt": "Summarize the plot of Romeo and Juliet in 40 words.",
+      "gen_tokens": 45,
+      "gen_tok_s": 28.9,
+      "prompt_tokens": 44,
+      "prefill_tok_s": 253.0,
+      "wall_s": 1.82
+    }
+  ]
+}

@@ -6,8 +6,9 @@ the machine down. Two self-contained demos:
 
 | Dir | What it does | Footprint |
 |-----|--------------|-----------|
-| [`ollama/`](ollama/) | Local LLM **inference** via Ollama (Metal backend) + a tokens/sec benchmark | 2–5 GB |
+| [`ollama/`](ollama/) | Local LLM **inference** via Ollama (Metal backend) + a tokens/sec benchmark (3B and 7B) | 2–5 GB |
 | [`mlx-sft/`](mlx-sft/) | **LoRA supervised fine-tuning** of a small LLM with Apple's [MLX](https://github.com/ml-explore/mlx) on a tiny custom dataset, with a before/after comparison | < 3 GB |
+| [`math-reasoning/`](math-reasoning/) | **LoRA SFT + adapter `fuse`** on a GSM8K-style math dataset, scored by **held-out accuracy** (base vs fine-tuned) | < 3 GB |
 
 ## Why these workloads (and not training from scratch)
 
@@ -34,6 +35,14 @@ pip install mlx-lm
 python mlx-sft/make_dataset.py          # writes data/train.jsonl + valid.jsonl
 bash   mlx-sft/train.sh                  # LoRA fine-tune (~minutes)
 python mlx-sft/compare.py               # base vs fine-tuned, side by side
+```
+
+### C. MLX LoRA + fuse on math reasoning (scored by accuracy)
+```bash
+source .venv/bin/activate               # (same venv as B)
+bash   math-reasoning/train.sh          # LoRA fine-tune on GSM8K-style data
+bash   math-reasoning/fuse.sh           # merge adapter -> standalone model
+python math-reasoning/eval.py 80        # base vs fine-tuned accuracy, held-out
 ```
 
 ## Hardware notes
