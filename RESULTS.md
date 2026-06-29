@@ -7,6 +7,7 @@ Run: `python3 ollama/bench_ollama.py <model> --json ...` (raw data in
 
 | Model (Q4) | Generation | Prefill | ~RAM | Impact |
 |---|---|---|---|---|
+| `qwen-math` (our 0.5B SFT, see C) | **~215 tok/s** | ~2085 tok/s | ~0.6 GB | trivial |
 | `llama3.2:3b` | **~59 tok/s** | ~439 tok/s | ~2.5 GB | negligible — use freely |
 | `qwen2.5:7b`  | **~29 tok/s** | ~216 tok/s | ~5 GB | light — fine alongside work |
 
@@ -45,34 +46,59 @@ more iters) learned the facts but *regressed on the control* ("capital of France
 → gibberish) — a textbook demonstration of catastrophic forgetting in a narrow
 fine-tune.
 
-## C. MLX LoRA fine-tune + **fuse** — math reasoning (`Qwen2.5-1.5B-Instruct-4bit`)
+## C. MLX LoRA fine-tune → fuse → **GGUF / Ollama** — math reasoning
 
-Run: `bash math-reasoning/train.sh && bash math-reasoning/fuse.sh && python math-reasoning/eval.py 80`.
+Run: `DIFFICULTY=hard MODEL=mlx-community/Qwen2.5-0.5B-Instruct-4bit bash math-reasoning/train.sh`
+then `… eval.py 100`, then `… bash math-reasoning/export_gguf.sh`.
 
-A 450/50/80 GSM8K-style dataset of grade-school word problems with
-deterministically-correct step-by-step solutions ([`make_math_dataset.py`](math-reasoning/make_math_dataset.py),
-10 problem types). Targets teach the model to show its work and end with a
-parseable `#### <answer>`. The held-out test set has gold answers, so we can
-score **accuracy**, not just loss.
+A GSM8K-style dataset ([`make_math_dataset.py`](math-reasoning/make_math_dataset.py))
+with deterministically-correct step-by-step solutions, in two difficulties:
+`easy` (1–2 steps) and `hard` (3–5 steps: discount+tax, percent-of-remainder,
+multi-leg trips, missing-average, two-equation systems…). Targets teach the model
+to show its work and end with a parseable `#### <answer>`. The held-out test set
+(500/50/100, disjoint) has gold answers, so we score **accuracy**, not just loss.
 
+### The key finding: fine-tuning only helps where the base has headroom
+
+Same hard dataset, two base models, accuracy on the **100 hard held-out** problems
+(measured as base vs base+LoRA-adapter):
+
+| Base model | Base acc | Fine-tuned acc | Δ |
+|---|---|---|---|
+| Qwen2.5-**1.5B**-4bit | 90% | ~84% (fused)¹ | **−** (no headroom) |
+| Qwen2.5-**0.5B**-4bit | **58%** | **82%** | **+24 pts** |
+
+The 1.5B is already near-ceiling on multi-step arithmetic, so there's nothing to
+teach — fine-tuning + the 4-bit re-quantization during fuse slightly *hurt*. The
+0.5B genuinely struggles (it computed only one leg of a trip, or summed the wrong
+scores for a missing-average), and LoRA on the exact distribution gives a clean
+**+24-point** lift. *Lesson: pick the base for where the headroom is.*
+
+¹ measured on the *fused* (re-quantized) model — the eval default is now
+base+adapter, which avoids that confound.
+
+### Training (0.5B, hard) and cost
 | Metric | Result |
 |---|---|
-| Trainable params (LoRA) | 2.64M (0.171%) |
-| Val loss | 2.77 → **0.13** (300 iters) |
-| Training throughput | ~2.1 iters/s, ~910 tokens/s |
-| Peak memory (train) | 2.3 GB |
-| **Fused** standalone model | 868 MB (stays 4-bit), 133 tok/s gen, 1.0 GB peak |
-| **Accuracy on 80 held-out** | base **87.5%** → fine-tuned **90.0%** |
+| Trainable params (LoRA) | 1.47M (0.30%) |
+| Val loss | → **0.13** (400 iters) |
+| Training throughput | ~3.8 iters/s, ~2000 tokens/s |
+| Peak memory (train) | 1.9 GB |
+| Wall-clock | ~2 minutes |
 
-**Honest read:** the 1.5B base is already strong on this easy distribution
-(70/80), so the +2 problems is essentially within noise. The real, reliable win
-is **format adherence** — the tuned model consistently shows steps and emits a
-clean `#### <answer>` that always parses. To demonstrate a large accuracy lift
-you'd want harder problems (more steps, larger numbers) or a weaker base model.
+### Fuse + GGUF export → Ollama
+`mlx_lm.fuse` merges the adapter into a standalone model. MLX's *native* GGUF
+exporter rejects Qwen2, so [`export_gguf.sh`](math-reasoning/export_gguf.sh) uses
+the standard **llama.cpp** path: `fuse --dequantize` → `convert_hf_to_gguf.py` →
+`llama-quantize Q4_K_M` → `ollama create`. Result: a **385 MB** `qwen-math` model
+running in Ollama at **~215 tok/s**, reasoning correctly end-to-end:
 
-The `fuse` step (`mlx_lm.fuse`) merges the LoRA adapter back into the weights to
-produce a **standalone model** that loads with no adapter — ready to ship or to
-convert toward GGUF for llama.cpp/Ollama.
+```
+A jacket costs $200. Take 25% off, then add 10% tax. Final price?
+  Discount: 25% of 200 = 50.   After discount: 200 − 50 = 150.
+  Tax: 10% of 150 = 15.        Final price: 150 + 15 = 165.
+  #### 165   ✅
+```
 
 ## Takeaway
 Inference (Ollama/Metal), small-model LoRA SFT, and adapter fusing (MLX) are all

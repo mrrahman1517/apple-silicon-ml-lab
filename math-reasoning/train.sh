@@ -8,10 +8,11 @@ PY="$REPO/.venv/bin/python"
 
 # 1.5B has noticeably better arithmetic than 0.5B while staying light on 16 GB.
 MODEL="${MODEL:-mlx-community/Qwen2.5-1.5B-Instruct-4bit}"
+DIFFICULTY="${DIFFICULTY:-hard}"   # easy | hard | mixed
 
-"$PY" "$HERE/make_math_dataset.py"
+"$PY" "$HERE/make_math_dataset.py" "$DIFFICULTY"
 
-echo "== LoRA fine-tune =="
+echo "== LoRA fine-tune ($DIFFICULTY, $MODEL) =="
 "$PY" -m mlx_lm.lora \
     --model "$MODEL" \
     --train \
@@ -20,7 +21,7 @@ echo "== LoRA fine-tune =="
     --fine-tune-type lora \
     --num-layers 8 \
     --batch-size 4 \
-    --iters 300 \
+    --iters 400 \
     --learning-rate 1e-4 \
     --max-seq-length 512 \
     --steps-per-report 25 \

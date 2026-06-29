@@ -56,7 +56,10 @@ bmodel, btok = load(BASE)
 bsamples = []
 bc = evaluate(bmodel, btok, tests, bsamples)
 
-if os.path.isdir(FUSED):
+# Default to base+LoRA-adapter (the truest measure of the fine-tune). The fused
+# 4-bit model re-quantizes the merged weights, which adds noise — only eval it
+# directly with EVAL_FUSED=1 if you want to measure the shipped artifact.
+if os.environ.get("EVAL_FUSED") == "1" and os.path.isdir(FUSED):
     print("loading fine-tuned (fused standalone model) ...")
     fmodel, ftok = load(FUSED); tag = "fused"
 else:

@@ -3,9 +3,11 @@
 __pycache__/
 *.pyc
 
-# MLX LoRA / fused outputs (regenerable from train.sh + fuse.sh)
+# MLX LoRA / fused / GGUF outputs (regenerable from train.sh + fuse.sh + export_gguf.sh)
 **/adapters/
 **/fused_model/
+**/gguf/
+.llama.cpp/
 
 # large / cached artifacts
 *.safetensors

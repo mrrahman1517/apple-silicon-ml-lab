@@ -8,7 +8,7 @@ the machine down. Two self-contained demos:
 |-----|--------------|-----------|
 | [`ollama/`](ollama/) | Local LLM **inference** via Ollama (Metal backend) + a tokens/sec benchmark (3B and 7B) | 2–5 GB |
 | [`mlx-sft/`](mlx-sft/) | **LoRA supervised fine-tuning** of a small LLM with Apple's [MLX](https://github.com/ml-explore/mlx) on a tiny custom dataset, with a before/after comparison | < 3 GB |
-| [`math-reasoning/`](math-reasoning/) | **LoRA SFT + adapter `fuse`** on a GSM8K-style math dataset, scored by **held-out accuracy** (base vs fine-tuned) | < 3 GB |
+| [`math-reasoning/`](math-reasoning/) | **LoRA SFT → `fuse` → GGUF/Ollama** on a GSM8K-style math dataset, scored by **held-out accuracy** (base vs fine-tuned). Fine-tuning a weak 0.5B base lifts hard-problem accuracy **58% → 82%**. | < 3 GB |
 
 ## Why these workloads (and not training from scratch)
 
@@ -37,13 +37,17 @@ bash   mlx-sft/train.sh                  # LoRA fine-tune (~minutes)
 python mlx-sft/compare.py               # base vs fine-tuned, side by side
 ```
 
-### C. MLX LoRA + fuse on math reasoning (scored by accuracy)
+### C. MLX LoRA → fuse → GGUF/Ollama on math reasoning (scored by accuracy)
 ```bash
 source .venv/bin/activate               # (same venv as B)
+export MODEL=mlx-community/Qwen2.5-0.5B-Instruct-4bit DIFFICULTY=hard
 bash   math-reasoning/train.sh          # LoRA fine-tune on GSM8K-style data
-bash   math-reasoning/fuse.sh           # merge adapter -> standalone model
-python math-reasoning/eval.py 80        # base vs fine-tuned accuracy, held-out
+python math-reasoning/eval.py 100       # base vs fine-tuned accuracy, held-out
+bash   math-reasoning/export_gguf.sh    # fuse -> GGUF (llama.cpp) -> ollama create qwen-math
+ollama run qwen-math "A jacket costs \$200. Take 25% off, then add 10% tax. Final price?"
 ```
+`DIFFICULTY` is `easy|hard|mixed`; `MODEL` picks the base (0.5B shows the biggest
+lift; 1.5B is already near-ceiling on these). GGUF export needs `brew install llama.cpp`.
 
 ## Hardware notes
 - Measured M5 GPU ≈ 2.4 TFLOP/s FP32, memory bandwidth ≈ 55 GB/s (CPU triad) / ~120 GB/s SoC.
