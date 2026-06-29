@@ -2,13 +2,25 @@
 
 Small, reproducible ML workloads that run **well on an Apple Silicon Mac** (developed
 on a MacBook Air **M5, 10-core GPU, 16 GB unified memory**, fanless) without bogging
-the machine down. Two self-contained demos:
+the machine down. Three self-contained demos:
 
 | Dir | What it does | Footprint |
 |-----|--------------|-----------|
 | [`ollama/`](ollama/) | Local LLM **inference** via Ollama (Metal backend) + a tokens/sec benchmark (3B and 7B) | 2–5 GB |
 | [`mlx-sft/`](mlx-sft/) | **LoRA supervised fine-tuning** of a small LLM with Apple's [MLX](https://github.com/ml-explore/mlx) on a tiny custom dataset, with a before/after comparison | < 3 GB |
 | [`math-reasoning/`](math-reasoning/) | **LoRA SFT → `fuse` → GGUF/Ollama** on a GSM8K-style math dataset, scored by **held-out accuracy** (base vs fine-tuned). Fine-tuning a weak 0.5B base lifts hard-problem accuracy **58% → 82%**. | < 3 GB |
+
+## Download the fine-tuned model (`qwen-math`, 0.5B)
+
+The math-reasoning model is published ready to run:
+
+- 🤗 **Hugging Face:** [mrrahman82/qwen-math-0.5b](https://huggingface.co/mrrahman82/qwen-math-0.5b) — GGUF (Q4_K_M + f16), MLX LoRA adapter, model card
+- 📦 **GitHub Release:** [v0.1-qwen-math](https://github.com/mrrahman1517/apple-silicon-ml-lab/releases/tag/v0.1-qwen-math) — GGUF + Modelfile
+
+```bash
+# run it locally in Ollama, straight from Hugging Face:
+ollama run hf.co/mrrahman82/qwen-math-0.5b:Q4_K_M "A jacket costs $200. Take 25% off, then add 10% tax. Final price?"
+```
 
 ## Why these workloads (and not training from scratch)
 
